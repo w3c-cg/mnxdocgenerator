@@ -1,1 +1,1 @@
-MNX doc generator
+# MNX and MusicXML Documentation Generator
