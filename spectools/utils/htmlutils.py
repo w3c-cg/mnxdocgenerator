@@ -213,15 +213,18 @@ def get_augmented_example_json_inner(current_url, json_data, object_def=None, in
         result.append([indent_level, '{', False])
         keys = list(sorted(json_data.keys(), key=json_key_sorter))
         for i, key in enumerate(keys):
-            result.append([
-                indent_level + 1,
-                f'<a class="tag" href="{get_relative_url(current_url, object_def.get_absolute_url())}">"{key}"</a>:',
-                True
-            ])
+            value = f'"{key}"'
+            if object_def.has_docs_page():
+                value = f'<a class="tag" href="{get_relative_url(current_url, object_def.get_absolute_url())}">{value}</a>'
+            result.append([indent_level + 1, f'{value}:', True])
+            if object_def.is_user_defined_dict():
+                child_rel = list(child_rels.values())[0].child
+            else:
+                child_rel = child_rels[key].child if key in child_rels else None
             result.extend(get_augmented_example_json_inner(
                 current_url,
                 json_data[key],
-                child_rels[key].child if key in child_rels else None,
+                child_rel,
                 indent_level + 1,
                 add_comma=i != len(keys) - 1
             ))

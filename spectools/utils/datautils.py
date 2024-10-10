@@ -62,7 +62,7 @@ def accumulate_used_json_objects(json_data, object_def):
     within (recursively).
     """
     result = set()
-    if object_def.is_array():
+    if object_def.is_array() or object_def.is_user_defined_dict():
         child_object_defs = [c.child for c in object_def.get_child_relationships()]
         for child_obj in json_data:
             child_object_def = JSONObject.get_jsonobject_for_data(child_obj, child_object_defs)

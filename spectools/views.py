@@ -65,7 +65,7 @@ def json_object_list(request, schema_slug):
     objects = JSONObject.objects.select_related('schema').filter(
         schema=schema,
     ).exclude(
-        Q(object_type=JSONObject.OBJECT_TYPE_ARRAY) | Q(object_type=JSONObject.OBJECT_TYPE_LITERAL_STRING)
+        Q(object_type=JSONObject.OBJECT_TYPE_ARRAY) | Q(object_type=JSONObject.OBJECT_TYPE_DICT_USER_DEFINED) | Q(object_type=JSONObject.OBJECT_TYPE_LITERAL_STRING)
     ).order_by('name')
     return render(request, 'json_object_list.html', {
         'schema': schema,

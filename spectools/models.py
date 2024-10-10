@@ -381,8 +381,10 @@ class JSONObject(models.Model):
     OBJECT_TYPE_NUMBER = 4
     OBJECT_TYPE_BOOLEAN = 5
     OBJECT_TYPE_LITERAL_STRING = 6
+    OBJECT_TYPE_DICT_USER_DEFINED = 7
     OBJECT_TYPE_CHOICES = (
         (OBJECT_TYPE_DICT, 'Dictionary'),
+        (OBJECT_TYPE_DICT_USER_DEFINED, 'Dictionary with user-defined keys'),
         (OBJECT_TYPE_ARRAY, 'Array'),
         (OBJECT_TYPE_STRING, 'String'),
         (OBJECT_TYPE_NUMBER, 'Number'),
@@ -415,13 +417,16 @@ class JSONObject(models.Model):
         return reverse('json_object_detail', args=(self.schema.slug, self.slug))
 
     def has_docs_page(self):
-        return self.object_type not in {JSONObject.OBJECT_TYPE_ARRAY, JSONObject.OBJECT_TYPE_LITERAL_STRING}
+        return self.object_type not in {JSONObject.OBJECT_TYPE_ARRAY, JSONObject.OBJECT_TYPE_LITERAL_STRING, JSONObject.OBJECT_TYPE_DICT_USER_DEFINED}
 
     def is_array(self):
         return self.object_type == JSONObject.OBJECT_TYPE_ARRAY
 
     def is_literal_string(self):
         return self.object_type == JSONObject.OBJECT_TYPE_LITERAL_STRING
+
+    def is_user_defined_dict(self):
+        return self.object_type == JSONObject.OBJECT_TYPE_DICT_USER_DEFINED
 
     def get_child_relationships(self):
         return list(JSONObjectRelationship.objects.filter(parent=self).order_by('child_key'))
@@ -430,6 +435,7 @@ class JSONObject(models.Model):
     def pretty_object_type(self):
         return {
             JSONObject.OBJECT_TYPE_DICT: 'Dictionary',
+            JSONObject.OBJECT_TYPE_DICT_USER_DEFINED: 'Dictionary with user-defined keys',
             JSONObject.OBJECT_TYPE_ARRAY: 'Array',
             JSONObject.OBJECT_TYPE_STRING: 'String',
             JSONObject.OBJECT_TYPE_NUMBER: 'Number',
@@ -451,6 +457,8 @@ class JSONObject(models.Model):
                 if k not in child_rels:
                     return False
             return True
+        elif object_type == JSONObject.OBJECT_TYPE_DICT_USER_DEFINED:
+            return isinstance(json_data, dict)
         elif object_type == JSONObject.OBJECT_TYPE_ARRAY:
             return isinstance(json_data, list)
         elif object_type in {JSONObject.OBJECT_TYPE_STRING, JSONObject.OBJECT_TYPE_LITERAL_STRING}:

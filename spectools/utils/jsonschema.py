@@ -60,6 +60,13 @@ def get_schema_for_db_object(db_object, use_defs=True):
         if required:
             result['required'] = list(sorted(required))
         return result
+    elif object_type == JSONObject.OBJECT_TYPE_DICT_USER_DEFINED:
+        childrels = db_object.get_child_relationships()
+        result = {
+            'type': 'object',
+            'additionalProperties': {'type': get_schema_for_db_object(childrels[0].child)}
+        }
+        return result
     elif object_type == JSONObject.OBJECT_TYPE_ARRAY:
         childrels = db_object.get_child_relationships()
         if len(childrels) == 1:
