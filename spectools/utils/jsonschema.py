@@ -64,7 +64,10 @@ def get_schema_for_db_object(db_object, use_defs=True):
         childrels = db_object.get_child_relationships()
         result = {
             'type': 'object',
-            'additionalProperties': {'type': get_schema_for_db_object(childrels[0].child)}
+            'additionalProperties': False,
+            'patternProperties': {
+                '^.*$': get_schema_for_db_object(childrels[0].child)
+            }
         }
         return result
     elif object_type == JSONObject.OBJECT_TYPE_ARRAY:
