@@ -77,6 +77,19 @@
 </table>
 {% endif %}
 
+{% if parent_relationships %}
+<h2>Parent objects</h2>
+
+<p>This object is used by the following parent objects:</p>
+
+<ul>
+{% for rel in parent_relationships %}
+<li><a href="{% relative_url_string rel.parent.get_absolute_url %}">{{ rel.parent.name }}</a>: "{{ rel.child_key }}"</li>
+{% endfor %}
+</ul>
+{% endif %}
+
+
 {% if examples %}
 <h2 id="examples">Examples</h2>
 

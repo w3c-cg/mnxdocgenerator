@@ -431,6 +431,19 @@ class JSONObject(models.Model):
     def get_child_relationships(self):
         return list(JSONObjectRelationship.objects.filter(parent=self).order_by('child_key'))
 
+    def get_parent_relationships(self):
+        result = []
+        for rel in JSONObjectRelationship.objects.filter(child=self).order_by('parent__name', 'child_key'):
+            if rel.parent.has_docs_page():
+                result.append(rel)
+            else:
+                parent_rel = JSONObjectRelationship.objects.filter(
+                    child=rel.parent
+                )[0]
+                result.append(parent_rel)
+
+        return result
+
     @admin.display(description='Object type', ordering='object_type')
     def pretty_object_type(self):
         return {
