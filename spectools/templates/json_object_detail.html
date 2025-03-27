@@ -47,7 +47,7 @@
             An object with user-defined keys, where each value is a <a href="{% relative_url_string childrel.child.get_absolute_url %}">{{ childrel.child.name }} object</a>
             {% endwith %}
         {% else %}
-        <a href="{% relative_url_string rel.child.get_absolute_url %}">{{ rel.child.name }} object</a>
+        <a href="{% relative_url_string rel.child.get_absolute_url %}">{{ rel.child.name }}</a>
         {% endif %}
     </td>
     <td>{{ rel.is_required|yesno|title }}</td>
