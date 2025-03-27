@@ -33,7 +33,7 @@
 
 {% for rel in child_relationships %}
 <tr>
-    <td><nobr><b>"{{ rel.child_key }}"</b></nobr></td>
+    <td><nobr><b>{{ rel.child_key }}</b></nobr></td>
     <td>
         {% if rel.child.is_array %}
             An array of
@@ -44,10 +44,10 @@
             The string <code>"{{ rel.child.description }}"</code>
         {% elif rel.child.is_user_defined_dict %}
             {% with rel.child.get_child_relationships.0 as childrel %}
-            An object with user-defined keys, where each value is a <a href="{% relative_url_string childrel.child.get_absolute_url %}">{{ childrel.child.name }} object</a>
+            An object with user-defined keys, where each value is a <a href="{% relative_url_string childrel.child.get_absolute_url %}">{{ childrel.child.name }}</a>
             {% endwith %}
         {% else %}
-        <a href="{% relative_url_string rel.child.get_absolute_url %}">{{ rel.child.name }} object</a>
+        <a href="{% relative_url_string rel.child.get_absolute_url %}">{{ rel.child.name }}</a>
         {% endif %}
     </td>
     <td>{{ rel.is_required|yesno|title }}</td>
