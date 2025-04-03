@@ -1,4 +1,5 @@
 from django import http
+from django.conf import settings
 from django.db.models import Q
 from django.db.models.functions import Lower
 from django.shortcuts import get_object_or_404, render
@@ -6,7 +7,11 @@ from spectools.utils import htmlutils
 from spectools.models import *
 
 def homepage(request):
-    return render(request, 'homepage.html', {
+    homepage_html = 'homepage.html'
+    if getattr(settings, 'IS_MUSICXML', False):
+        homepage_html = 'homepage_musicxml.html'
+
+    return render(request, homepage_html, {
         'schemas': XMLSchema.objects.order_by('name'),
         'featured_concepts': Concept.objects.filter(is_featured=True).order_by('name'),
         'static_pages': StaticPage.objects.select_related('collection').order_by('collection__order', 'order'),
