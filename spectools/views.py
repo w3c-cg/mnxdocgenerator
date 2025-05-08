@@ -148,7 +148,7 @@ def example_detail(request, schema_slug, slug):
     )
     return render(request, 'example_detail.html', {
         'example': example,
-        'augmented_doc': htmlutils.get_augmented_example(request.path, example.schema, example.document, diffs_use_divs=False)[1],
+        'augmented_doc': htmlutils.get_augmented_example(request.path, example.schema, example.get_document_text(), diffs_use_divs=False)[1],
         'concepts': ExampleDocumentConcept.objects.filter(example=example).order_by('example__name'),
         'comparisons': ExampleDocumentComparison.objects.filter(example=example).select_related('doc_format'),
     })
@@ -171,7 +171,7 @@ def format_comparison_detail(request, slug):
     main_schema = XMLSchema.objects.get(id=1)
     comparisons = []
     for edc in ExampleDocumentComparison.objects.filter(doc_format=other_format).select_related('example').order_by('position'):
-        highlight_diffs, doc_html = htmlutils.get_augmented_example(request.path, main_schema, edc.example.document, True)
+        highlight_diffs, doc_html = htmlutils.get_augmented_example(request.path, main_schema, edc.example.get_document_text(), True)
         comparisons.append({
             'example': edc.example,
             'preamble_html': edc.preamble_html(),

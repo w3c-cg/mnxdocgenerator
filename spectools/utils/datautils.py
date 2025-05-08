@@ -77,7 +77,7 @@ def accumulate_used_json_objects(json_data, object_def):
 def update_example_elements_json(example):
     schema = example.schema
     root_object = JSONObject.objects.get(schema=schema, name=JSONObject.ROOT_OBJECT_NAME)
-    example_doc = json.loads(example.document)
+    example_doc = json.loads(example.get_document_text())
     seen_objects = accumulate_used_json_objects(example_doc, root_object)
     for existing in ExampleDocumentObject.objects.filter(example=example):
         if existing.json_object in seen_objects:
@@ -93,7 +93,7 @@ def update_example_elements_json(example):
 def update_example_elements_xml(example):
     reader = xml.sax.make_parser()
     handler = ElementCollector(example.schema)
-    xml.sax.parseString(example.document, handler)
+    xml.sax.parseString(example.get_document_text(), handler)
 
     # At this point, handler.result is a set of all
     # element names seen in the document.

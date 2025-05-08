@@ -17,7 +17,7 @@ def validate_example_docs():
         name_plus_dots = doc.name + ((name_width - len(doc.name)) * '.')
         try:
             result = validate(
-                instance=json.loads(doc.document),
+                instance=json.loads(doc.get_document_text()),
                 schema=schema
             )
         except SchemaError as e:

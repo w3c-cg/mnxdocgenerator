@@ -542,7 +542,9 @@ class ExampleDocument(models.Model):
     slug = models.CharField(max_length=100)
     schema = models.ForeignKey(XMLSchema, on_delete=models.CASCADE, default=1)
     blurb = models.TextField(blank=True)
-    document = models.TextField()
+    document = models.TextField(blank=True)
+    document_path = models.CharField(max_length=300, blank=True,
+        help_text='Path to the document within the doctools/media directory, e.g., "examples/json/beams.json".')
     image_url = models.CharField(max_length=300, blank=True,
         help_text='Path to the image within the doctools/media directory, e.g., "/static/examples/test.jpg".'
     )
@@ -564,6 +566,15 @@ class ExampleDocument(models.Model):
 
     def get_absolute_url(self):
         return reverse('example_detail', args=(self.schema.slug, self.slug,))
+
+    def get_document_text(self):
+        if self.document:
+            return self.document
+        else:
+            from django.conf import settings
+            import os.path
+            filename = os.path.join(settings.STATICFILES_DIRS[0], self.document_path)
+            return open(filename, 'r').read()
 
 class ExampleDocumentConcept(models.Model):
     example = models.ForeignKey(ExampleDocument, on_delete=models.CASCADE)
