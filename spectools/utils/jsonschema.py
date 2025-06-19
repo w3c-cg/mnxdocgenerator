@@ -15,13 +15,13 @@ def make_json_schema(schema_slug='mnx'):
         schema__slug=schema_slug,
         name=JSONObject.ROOT_OBJECT_NAME
     )[0]
-    result = get_schema_for_db_object(root_object)
-    result.update({
+    result = {
         '$schema': 'https://json-schema.org/draft/2020-12/schema',
         '$id': 'https://w3c.github.io/mnx/docs/mnx-schema.json',
         'title': 'MNX document',
         'description': 'An encoding of Common Western Music Notation.',
-    })
+        **get_schema_for_db_object(root_object),
+    }
 
     # Next, add any defs. We do this for any JSONObject that appears as
     # JSONRelationship.child more than once.
@@ -55,7 +55,7 @@ def get_schema_for_db_object(db_object, use_defs=True):
         result = {
             'type': 'object',
             'properties': props,
-            'additionalProperties': False
+            'additionalProperties': False,
         }
         if required:
             result['required'] = list(sorted(required))
@@ -108,3 +108,5 @@ def get_schema_for_db_object(db_object, use_defs=True):
             'type': 'string',
             'const': db_object.description
         }
+    else:
+        raise ValueError(f'Unknown JSONObject type: {object_type!r}')

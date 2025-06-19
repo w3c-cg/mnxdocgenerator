@@ -35,6 +35,7 @@ class SiteGenerator:
             self.generate_url(schema.reference_url())
             self.generate_url(schema.data_types_url())
             if schema.is_json:
+                self.log('Generating JSON schema')
                 self.generate_url(schema.json_objects_url())
                 self.generate_view('json_schema', schema.slug)
             else:
