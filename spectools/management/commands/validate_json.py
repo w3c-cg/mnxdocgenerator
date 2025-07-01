@@ -5,8 +5,20 @@ import json
 try:
     from jsonschema import validate
     from jsonschema.exceptions import ValidationError, SchemaError
+    from jsonschema.validators import validator_for, Draft202012Validator
 except ImportError:
     print('Error: Missing jsonschema library. Run "pip install jsonschema"')
+
+def validate_json_schema(schema):
+    try:
+        ValidatorClass = validator_for(schema)
+        ValidatorClass.check_schema(schema)
+    except Exception as e:
+        print(f'JSON schema validation failed: {e.message}')
+        return False
+    else:
+        print('JSON schema validated properly')
+        return True
 
 def validate_example_docs(schema):
     passes = 0
@@ -35,4 +47,6 @@ class Command(BaseCommand):
 
     def handle(self, **options):
         schema = make_json_schema()
-        validate_example_docs(schema)
+        schema_is_valid = validate_json_schema(schema)
+        if schema_is_valid:
+            validate_example_docs(schema)
