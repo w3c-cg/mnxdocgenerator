@@ -21,15 +21,16 @@ def validate_json_schema(schema):
         return True
 
 def validate_example_docs(schema):
+    ValidatorClass = validator_for(schema)
+    validator = ValidatorClass(schema)
     passes = 0
     failures = 0
     name_width = max(len(name) for name in ExampleDocument.objects.values_list('name', flat=True)) + 2
     for doc in ExampleDocument.objects.order_by('name'):
         name_plus_dots = doc.name + ((name_width - len(doc.name)) * '.')
         try:
-            result = validate(
-                instance=json.loads(doc.get_document_text()),
-                schema=schema
+            validator.validate(
+                json.loads(doc.get_document_text())
             )
         except SchemaError as e:
             failures += 1
