@@ -8,8 +8,7 @@ try:
 except ImportError:
     print('Error: Missing jsonschema library. Run "pip install jsonschema"')
 
-def validate_example_docs():
-    schema = make_json_schema()
+def validate_example_docs(schema):
     passes = 0
     failures = 0
     name_width = max(len(name) for name in ExampleDocument.objects.values_list('name', flat=True)) + 2
@@ -35,4 +34,5 @@ class Command(BaseCommand):
     help = 'Validates all example documents against the JSON Schema, printing a report to stdout.'
 
     def handle(self, **options):
-        validate_example_docs()
+        schema = make_json_schema()
+        validate_example_docs(schema)
