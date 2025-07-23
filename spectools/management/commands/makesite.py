@@ -65,15 +65,16 @@ class SiteGenerator:
         self.generate_url(url)
 
     def generate_url(self, url):
-        html = self.client.get(url).content
+        html = self.client.get(url).content.decode('utf-8')
+        html = html.replace('\r', '')
         file_dir = os.path.join(self.dirname, url[1:])
         self.log(file_dir)
         if url.endswith('/'):
             os.makedirs(file_dir, exist_ok=True)
-            with open(os.path.join(file_dir, INDEX_FILE), 'wb') as fp:
+            with open(os.path.join(file_dir, INDEX_FILE), 'w') as fp:
                 fp.write(html)
         else:
-            with open(file_dir, 'wb') as fp:
+            with open(file_dir, 'w') as fp:
                 fp.write(html)
 
     def copy_media_files(self):
