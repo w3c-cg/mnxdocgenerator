@@ -66,7 +66,10 @@ class SiteGenerator:
 
     def generate_url(self, url):
         html = self.client.get(url).content.decode('utf-8')
+
+        # Normalize Windows newlines ("\r\n") to Unix style ("\n").
         html = html.replace('\r', '')
+
         file_dir = os.path.join(self.dirname, url[1:])
         self.log(file_dir)
         if url.endswith('/'):
