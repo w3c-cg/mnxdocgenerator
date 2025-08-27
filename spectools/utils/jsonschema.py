@@ -23,12 +23,11 @@ def make_json_schema(schema_slug='mnx'):
         'description': 'An encoding of Common Western Music Notation.',
     })
 
-    # Next, add any defs. We do this for any JSONObject that appears as
-    # JSONRelationship.child more than once.
+    # Next, add all defs. We do this for all non-native JSONObjects.
     defs = {}
     def_objects = JSONObject.objects.filter(schema__slug=schema_slug)
     for def_object in def_objects:
-        if def_object.slug not in NATIVE_TYPES and JSONObjectRelationship.objects.filter(child=def_object).count() > 1:
+        if def_object.slug not in NATIVE_TYPES:
             defs[def_object.slug] = get_schema_for_db_object(def_object, use_defs=False)
     if defs:
         result['$defs'] = defs
@@ -44,7 +43,7 @@ def get_schema_for_db_object(db_object, use_defs=True):
         return {
             'type': db_object.slug
         }
-    if use_defs and JSONObjectRelationship.objects.filter(child=db_object).count() > 1:
+    if use_defs:
         return {
             '$ref': f'#/$defs/{db_object.slug}'
         }
