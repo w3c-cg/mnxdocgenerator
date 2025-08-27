@@ -70,7 +70,7 @@ def json_object_list(request, schema_slug):
     objects = JSONObject.objects.select_related('schema').filter(
         schema=schema,
     ).exclude(
-        Q(object_type=JSONObject.OBJECT_TYPE_ARRAY) | Q(object_type=JSONObject.OBJECT_TYPE_DICT_USER_DEFINED) | Q(object_type=JSONObject.OBJECT_TYPE_LITERAL_STRING)
+        Q(object_type=JSONObject.OBJECT_TYPE_ARRAY) | Q(object_type=JSONObject.OBJECT_TYPE_DICT_USER_DEFINED) | Q(object_type=JSONObject.OBJECT_TYPE_LITERAL_STRING) | Q(name=JSONObject.GLOBAL_ATTRS_OBJECT_NAME)
     ).order_by('name')
     return render(request, 'json_object_list.html', {
         'schema': schema,
@@ -87,7 +87,7 @@ def json_object_detail(request, schema_slug, slug):
         raise http.Http404()
     return render(request, 'json_object_detail.html', {
         'object': json_object,
-        'child_relationships': json_object.get_child_relationships(),
+        'child_relationships': json_object.get_child_relationships(include_global_attrs=True),
         'parent_relationships': json_object.get_parent_relationships(),
         'enum_values': JSONObjectEnum.objects.filter(parent=json_object).order_by('name'),
         'examples': ExampleDocumentObject.objects.filter(json_object=json_object).select_related('example').order_by(Lower('example__name')),

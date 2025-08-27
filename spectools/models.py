@@ -392,6 +392,7 @@ class JSONObject(models.Model):
         (OBJECT_TYPE_LITERAL_STRING, 'Literal string'),
     )
     ROOT_OBJECT_NAME = '__root__'
+    GLOBAL_ATTRS_OBJECT_NAME = '__globalattrs__'
 
     name = models.CharField(max_length=80)
     slug = models.CharField(max_length=80)
@@ -417,6 +418,8 @@ class JSONObject(models.Model):
         return reverse('json_object_detail', args=(self.schema.slug, self.slug))
 
     def has_docs_page(self):
+        if self.is_global_attrs_object():
+            return False
         return self.object_type not in {JSONObject.OBJECT_TYPE_ARRAY, JSONObject.OBJECT_TYPE_LITERAL_STRING, JSONObject.OBJECT_TYPE_DICT_USER_DEFINED}
 
     def is_array(self):
@@ -428,12 +431,19 @@ class JSONObject(models.Model):
     def is_user_defined_dict(self):
         return self.object_type == JSONObject.OBJECT_TYPE_DICT_USER_DEFINED
 
-    def get_child_relationships(self):
-        return list(JSONObjectRelationship.objects.filter(parent=self).order_by('child_key'))
+    def is_global_attrs_object(self):
+        return self.name == JSONObject.GLOBAL_ATTRS_OBJECT_NAME
+
+    def get_child_relationships(self, include_global_attrs=False):
+        result = list(JSONObjectRelationship.objects.filter(parent=self).order_by('child_key'))
+        if include_global_attrs and self.object_type == JSONObject.OBJECT_TYPE_DICT:
+            result += list(JSONObjectRelationship.objects.filter(parent__name=JSONObject.GLOBAL_ATTRS_OBJECT_NAME).order_by('child_key'))
+            result.sort(key=lambda x: x.child_key)
+        return result
 
     def get_parent_relationships(self):
         result = []
-        for rel in JSONObjectRelationship.objects.filter(child=self).order_by('parent__name', 'child_key'):
+        for rel in JSONObjectRelationship.objects.filter(child=self).exclude(parent__name=JSONObject.GLOBAL_ATTRS_OBJECT_NAME).order_by('parent__name', 'child_key'):
             if rel.parent.has_docs_page():
                 result.append(rel)
             else:
@@ -465,7 +475,7 @@ class JSONObject(models.Model):
         """
         object_type = self.object_type
         if object_type == JSONObject.OBJECT_TYPE_DICT:
-            child_rels = {r.child_key: r for r in self.get_child_relationships()}
+            child_rels = {r.child_key: r for r in self.get_child_relationships(include_global_attrs=True)}
             for k in json_data.keys():
                 if k not in child_rels:
                     return False

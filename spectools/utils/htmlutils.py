@@ -209,7 +209,7 @@ def get_augmented_example_json_inner(current_url, json_data, object_def=None, in
         # rather than splitting the opening/closing symbols over two lines.
         result.append([indent_level, json.dumps(json_data, ensure_ascii=False), False])
     elif isinstance(json_data, dict):
-        child_rels = {r.child_key: r for r in object_def.get_child_relationships()}
+        child_rels = {r.child_key: r for r in object_def.get_child_relationships(include_global_attrs=True)}
         result.append([indent_level, '{', False])
         keys = list(sorted(json_data.keys(), key=json_key_sorter))
         for i, key in enumerate(keys):
@@ -230,7 +230,7 @@ def get_augmented_example_json_inner(current_url, json_data, object_def=None, in
             ))
         result.append([indent_level, '}', False])
     elif isinstance(json_data, list):
-        child_object_defs = [c.child for c in object_def.get_child_relationships()]
+        child_object_defs = [c.child for c in object_def.get_child_relationships(include_global_attrs=True)]
         result.append([indent_level, '[', False])
         for i, child_obj in enumerate(json_data):
             child_object_def = JSONObject.get_jsonobject_for_data(child_obj, child_object_defs)
