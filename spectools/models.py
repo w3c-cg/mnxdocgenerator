@@ -436,9 +436,17 @@ class JSONObject(models.Model):
 
     def get_child_relationships(self, include_global_attrs=False):
         result = list(JSONObjectRelationship.objects.filter(parent=self).order_by('child_key'))
-        if include_global_attrs and self.object_type == JSONObject.OBJECT_TYPE_DICT:
-            result += list(JSONObjectRelationship.objects.filter(parent__name=JSONObject.GLOBAL_ATTRS_OBJECT_NAME).order_by('child_key'))
-            result.sort(key=lambda x: x.child_key)
+        if include_global_attrs:
+            global_attrs = self.get_global_child_relationships()
+            if global_attrs:
+                result += global_attrs
+                result.sort(key=lambda x: x.child_key)
+        return result
+
+    def get_global_child_relationships(self):
+        result = []
+        if self.object_type == JSONObject.OBJECT_TYPE_DICT and not self.is_global_attrs_object():
+            result = list(JSONObjectRelationship.objects.filter(parent__name=JSONObject.GLOBAL_ATTRS_OBJECT_NAME).order_by('child_key'))
         return result
 
     def get_parent_relationships(self):
