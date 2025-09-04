@@ -398,6 +398,7 @@ class JSONObject(models.Model):
     slug = models.CharField(max_length=80)
     schema = models.ForeignKey(XMLSchema, on_delete=models.CASCADE, default=1)
     object_type = models.SmallIntegerField(choices=OBJECT_TYPE_CHOICES)
+    uses_global_attrs = models.BooleanField(default=True)
 
     # For OBJECT_TYPE_LITERAL_STRING, this contains the string.
     # For other object_types, this is a prose description displayed in the docs.
@@ -449,7 +450,7 @@ class JSONObject(models.Model):
 
     def get_global_child_relationships(self):
         result = []
-        if self.object_type == JSONObject.OBJECT_TYPE_DICT and not self.is_global_attrs_object():
+        if self.object_type == JSONObject.OBJECT_TYPE_DICT and self.uses_global_attrs:
             result = list(JSONObjectRelationship.objects.filter(parent__name=JSONObject.GLOBAL_ATTRS_OBJECT_NAME).order_by('child_key'))
         return result
 
