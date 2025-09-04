@@ -65,7 +65,7 @@ def get_schema_for_db_object(db_object, global_attrs_object, use_defs=True):
         }
         if required:
             result['required'] = list(sorted(required))
-        if db_object != global_attrs_object:
+        if db_object.uses_global_attrs:
             result['allOf'] = [
                 {'$ref': f'#/$defs/{global_attrs_object.slug}'}
             ]
