@@ -56,6 +56,17 @@
 {% endfor %}
 
 </table>
+
+{% if child_relationships_global %}
+<p>Plus <a href="{% relative_url_string global_attrs_obj.get_absolute_url %}">globally available attributes</a>:
+{% for rel in child_relationships_global %}<b>{{ rel.child_key }}</b>{% if not forloop.last %}, {% endif %}{% endfor %}
+</p>
+{% endif %}
+
+{% elif child_relationships_global %}
+<h2>Attributes</h2>
+
+<p>This object has no attributes except for the <a href="{% relative_url_string global_attrs_obj.get_absolute_url %}">globally available ones</a>: {% for rel in child_relationships_global %}<b>{{ rel.child_key }}</b>{% if not forloop.last %}, {% endif %}{% endfor %}</p>
 {% endif %}
 
 {% if enum_values %}

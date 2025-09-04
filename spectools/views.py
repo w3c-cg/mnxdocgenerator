@@ -87,10 +87,12 @@ def json_object_detail(request, schema_slug, slug):
         raise http.Http404()
     return render(request, 'json_object_detail.html', {
         'object': json_object,
-        'child_relationships': json_object.get_child_relationships(include_global_attrs=True),
+        'child_relationships': json_object.get_child_relationships(),
+        'child_relationships_global': json_object.get_global_child_relationships(),
         'parent_relationships': json_object.get_parent_relationships(),
         'enum_values': JSONObjectEnum.objects.filter(parent=json_object).order_by('name'),
         'examples': ExampleDocumentObject.objects.filter(json_object=json_object).select_related('example').order_by(Lower('example__name')),
+        'global_attrs_obj': JSONObject.objects.filter(name=JSONObject.GLOBAL_ATTRS_OBJECT_NAME)[0],
     })
 
 def json_schema(request, schema_slug):
