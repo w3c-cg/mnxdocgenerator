@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}The {{ object.name }} object{% endblock %}
+{% block title %}{{ object.docs_page_title }}{% endblock %}
 
 {% block content %}
 <p class="breadcrumb">
@@ -10,7 +10,7 @@
     {{ object.name }}
 </p>
 
-<h1>The {{ object.name }} object</h1>
+<h1>{{ object.docs_page_title }}</h1>
 
 <p><b>Type:</b> {{ object.pretty_object_type }}</p>
 

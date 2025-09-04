@@ -418,8 +418,6 @@ class JSONObject(models.Model):
         return reverse('json_object_detail', args=(self.schema.slug, self.slug))
 
     def has_docs_page(self):
-        if self.is_global_attrs_object():
-            return False
         return self.object_type not in {JSONObject.OBJECT_TYPE_ARRAY, JSONObject.OBJECT_TYPE_LITERAL_STRING, JSONObject.OBJECT_TYPE_DICT_USER_DEFINED}
 
     def is_array(self):
@@ -433,6 +431,12 @@ class JSONObject(models.Model):
 
     def is_global_attrs_object(self):
         return self.name == JSONObject.GLOBAL_ATTRS_OBJECT_NAME
+
+    def docs_page_title(self):
+        if self.is_global_attrs_object():
+            return 'Global attributes'
+        else:
+            return f'The {self.name} object'
 
     def get_child_relationships(self, include_global_attrs=False):
         result = list(JSONObjectRelationship.objects.filter(parent=self).order_by('child_key'))
