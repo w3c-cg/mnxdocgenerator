@@ -177,7 +177,9 @@ def get_augmented_example_json(current_url, schema, raw_document, diffs_use_divs
     )
     output_html = []
     collapse_next = False
-    for indent_level, text, collapse in result:
+    for indent_level, text, collapse, highlight in result:
+        if highlight:
+            text = f'<b class="markuphl">{text}</b>'
         if collapse_next and output_html:
             output_html[-1] += ' ' + text
         else:
@@ -196,27 +198,45 @@ def json_key_sorter(x):
     """
     return (x != 'id', x != 'mnx', x != 'type', x)
 
-def get_augmented_example_json_inner(current_url, json_data, object_def=None, indent_level=0, add_comma=False):
+def get_augmented_example_json_inner(current_url, json_data, object_def=None, indent_level=0, add_comma=False, highlight=False):
     result = []
     if object_def is None:
         result.append([
             indent_level,
             f'<span class="tag">{json.dumps(json_data, ensure_ascii=False)}</span>',
-            False
+            False,
+            highlight
         ])
     elif isinstance(json_data, (dict, list)) and not json_data:
         # Special case: For empty dicts or empty lists, use "{}" and "[]"
         # rather than splitting the opening/closing symbols over two lines.
-        result.append([indent_level, json.dumps(json_data, ensure_ascii=False), False])
+        result.append([
+            indent_level,
+            json.dumps(json_data, ensure_ascii=False),
+            False,
+            highlight
+        ])
     elif isinstance(json_data, dict):
         child_rels = {r.child_key: r for r in object_def.get_child_relationships(include_global_attrs=True)}
-        result.append([indent_level, '{', False])
+        result.append([
+            indent_level,
+            '{',
+            False,
+            highlight
+        ])
+        vendor_data = json_data.pop('_x', {})
+        highlighted_keys = vendor_data.get('mnxdocs', {}).get('highlight', [])
         keys = list(sorted(json_data.keys(), key=json_key_sorter))
         for i, key in enumerate(keys):
             value = f'"{key}"'
             if object_def.has_docs_page():
                 value = f'<a class="tag" href="{get_relative_url(current_url, object_def.get_absolute_url())}">{value}</a>'
-            result.append([indent_level + 1, f'{value}:', True])
+            result.append([
+                indent_level + 1,
+                f'{value}:',
+                True,
+                highlight or key in highlighted_keys
+            ])
             if object_def.is_user_defined_dict():
                 child_rel = list(child_rels.values())[0].child
             else:
@@ -226,12 +246,23 @@ def get_augmented_example_json_inner(current_url, json_data, object_def=None, in
                 json_data[key],
                 child_rel,
                 indent_level + 1,
-                add_comma=i != len(keys) - 1
+                add_comma=i != len(keys) - 1,
+                highlight=highlight or key in highlighted_keys
             ))
-        result.append([indent_level, '}', False])
+        result.append([
+            indent_level,
+            '}',
+            False,
+            highlight
+        ])
     elif isinstance(json_data, list):
         child_object_defs = [c.child for c in object_def.get_child_relationships(include_global_attrs=True)]
-        result.append([indent_level, '[', False])
+        result.append([
+            indent_level,
+            '[',
+            False,
+            highlight
+        ])
         for i, child_obj in enumerate(json_data):
             child_object_def = JSONObject.get_jsonobject_for_data(child_obj, child_object_defs)
             result.extend(get_augmented_example_json_inner(
@@ -239,14 +270,25 @@ def get_augmented_example_json_inner(current_url, json_data, object_def=None, in
                 child_obj,
                 child_object_def,
                 indent_level + 1,
-                add_comma=i != len(json_data) - 1
+                add_comma=i != len(json_data) - 1,
+                highlight=highlight
             ))
-        result.append([indent_level, ']', False])
+        result.append([
+            indent_level,
+            ']',
+            False,
+            highlight
+        ])
     else:
         value = json.dumps(json_data, ensure_ascii=False)
         if object_def.has_docs_page():
             value = f'<a class="tag" href="{get_relative_url(current_url, object_def.get_absolute_url())}">{value}</a>'
-        result.append([indent_level, value, False])
+        result.append([
+            indent_level,
+            value,
+            False,
+            highlight
+        ])
     if add_comma:
         result[-1][1] += ','
     return result
