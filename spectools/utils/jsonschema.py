@@ -10,6 +10,8 @@ def make_json_schema(schema_slug='mnx'):
     in the database. The result is a Python data structure that, if
     serialized to JSON, is a correct JSON schema.
     """
+    schema = XMLSchema.objects.filter(slug=schema_slug)[0]
+
     # First, add the root object.
     root_object = JSONObject.objects.filter(
         schema__slug=schema_slug,
@@ -26,7 +28,7 @@ def make_json_schema(schema_slug='mnx'):
     result = get_schema_for_db_object(root_object, global_attrs_object)
     result.update({
         '$schema': 'https://json-schema.org/draft/2020-12/schema',
-        '$id': 'https://w3c.github.io/mnx/docs/mnx-schema.json',
+        '$id': f'https://w3c.github.io/mnx/docs/mnx-schema.json/version/{schema.version}',
         'title': 'MNX document',
         'description': 'An encoding of Common Western Music Notation.',
     })
