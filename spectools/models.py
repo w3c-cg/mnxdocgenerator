@@ -29,6 +29,7 @@ class XMLSchema(models.Model):
     name = models.CharField(max_length=100)
     slug = models.CharField(max_length=100, unique=True)
     is_json = models.BooleanField(default=False)
+    version = models.CharField(max_length=12, blank=True)
 
     class Meta:
         db_table = 'xml_schemas'
