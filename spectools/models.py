@@ -68,7 +68,7 @@ class DataType(models.Model):
         help_text='Use this field if this data type is a native XSD type such as string.'
     )
     base_type = models.ForeignKey('self', blank=True, null=True, on_delete=models.CASCADE, related_name='+')
-    union_types = models.ManyToManyField('self', blank=True, related_name='+',
+    union_types = models.ManyToManyField('self', blank=True,
         help_text='If this data type is a union of multiple other types, list them here.'
     )
     min_value = models.CharField(max_length=10, blank=True)
