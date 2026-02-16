@@ -400,6 +400,8 @@ class JSONObject(models.Model):
     schema = models.ForeignKey(XMLSchema, on_delete=models.CASCADE, default=1)
     object_type = models.SmallIntegerField(choices=OBJECT_TYPE_CHOICES)
     uses_global_attrs = models.BooleanField(default=True)
+    regex = models.CharField(max_length=255, blank=True,
+        help_text="For strings, an optional regex to use for this value. Make sure to use ^ at the start and $ at the end.")
 
     # For OBJECT_TYPE_LITERAL_STRING, this contains the string.
     # For other object_types, this is a prose description displayed in the docs.

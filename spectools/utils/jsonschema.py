@@ -112,6 +112,8 @@ def get_schema_for_db_object(db_object, global_attrs_object, use_defs=True):
         result = {
             'type': 'string'
         }
+        if db_object.regex:
+            result['pattern'] = db_object.regex
         enums = JSONObjectEnum.objects.filter(parent=db_object)
         if enums:
             result['enum'] = [e.name for e in enums]

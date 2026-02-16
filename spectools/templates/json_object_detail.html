@@ -14,6 +14,10 @@
 
 <p><b>Type:</b> {{ object.pretty_object_type }}</p>
 
+{% if object.regex %}
+<p><b>Regular expression:</b> <code>{{ object.regex }}</code></p>
+{% endif %}
+
 {% if object.description %}
 {{ object.description|safe }}
 {% endif %}
