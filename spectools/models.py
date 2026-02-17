@@ -275,7 +275,7 @@ class XMLElement(models.Model):
                 elif min_amount == 1 and max_amount is None:
                     return 'In this order (One or more times)'
                 elif min_amount == 0 and max_amount == 1:
-                    return 'In this order (Optional)'
+                    return 'In this order (Zero ot one times)'
         return {
             XMLElement.CHILDREN_TYPE_UNORDERED: 'In any order',
             XMLElement.CHILDREN_TYPE_SEQUENCE: 'In this order',
