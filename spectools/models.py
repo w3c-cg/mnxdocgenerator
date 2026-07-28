@@ -543,7 +543,7 @@ class JSONObjectRelationship(models.Model):
 
 class JSONObjectEnum(models.Model):
     parent = models.ForeignKey(JSONObject, on_delete=models.CASCADE, related_name='+')
-    name = models.CharField(max_length=80)
+    name = models.CharField(max_length=80, blank=True)
     description = models.TextField(blank=True)
 
     class Meta:
