@@ -1,125 +1,119 @@
-from spectools.models import *
+from spectools import metaspec as ms
 
-# Each of these types is a native JSONSchema type and also exists as a
-# JSONObject.slug.
+# Each of these types is a native JSON Schema type and is also defined as an
+# object in the metaspec, so it's emitted inline instead of as a "$defs" entry.
 NATIVE_TYPES = set(['boolean'])
 
 def make_json_schema(schema_slug='mnx'):
     """
-    Creates a JSON schema by looking at the JSONObject information
-    in the database. The result is a Python data structure that, if
-    serialized to JSON, is a correct JSON schema.
+    Creates a JSON schema from the metaspec. The result is a Python data
+    structure that, if serialized to JSON, is a correct JSON schema.
     """
-    schema = XMLSchema.objects.filter(slug=schema_slug)[0]
-
-    # First, add the root object.
-    root_object = JSONObject.objects.filter(
-        schema__slug=schema_slug,
-        name=JSONObject.ROOT_OBJECT_NAME
-    )[0]
-    try:
-        global_attrs_object = JSONObject.objects.filter(
-            schema__slug=schema_slug,
-            name=JSONObject.GLOBAL_ATTRS_OBJECT_NAME
-        )[0]
-    except IndexError:
-        global_attrs_object = None
-
-    result = get_schema_for_db_object(root_object, global_attrs_object)
+    metaspec = ms.get_metaspec()
+    result = get_schema_for_object(metaspec.root_object)
     result.update({
         '$schema': 'https://json-schema.org/draft/2020-12/schema',
-        '$id': f'https://w3c-cg.github.io/mnx/docs/mnx-schema.json/version/{schema.version}',
+        '$id': f'https://w3c-cg.github.io/mnx/docs/mnx-schema.json/version/{metaspec.version}',
         'title': 'MNX document',
         'description': 'An encoding of Common Western Music Notation.',
     })
 
-    # Next, add all defs. We do this for all non-native JSONObjects.
-    defs = {}
-    def_objects = JSONObject.objects.filter(schema__slug=schema_slug)
-    for def_object in def_objects:
-        if def_object.slug not in NATIVE_TYPES:
-            defs[def_object.slug] = get_schema_for_db_object(def_object, global_attrs_object, use_defs=False)
+    # Next, add all defs. We do this for every named object except the ones
+    # that JSON Schema already has a type for.
+    defs = {
+        slug: get_schema_for_object(obj, use_defs=False)
+        for slug, obj in metaspec.objects.items()
+        if slug not in NATIVE_TYPES
+    }
     if defs:
         result['$defs'] = defs
 
     return result
 
-def get_schema_for_db_object(db_object, global_attrs_object, use_defs=True):
+def get_schema_for_object(obj, use_defs=True):
     """
-    Given a JSONObject instance, returns its JSON schema definition
-    as a Python dictionary.
+    Given a SpecObject, returns its JSON schema definition as a Python
+    dictionary.
+
+    With use_defs=True, named objects are emitted as a "$ref" pointing at
+    their "$defs" entry. Objects declared inline in the metaspec -- arrays
+    and literal strings -- have no "$defs" entry, so they're always
+    emitted in full.
     """
-    if db_object.slug in NATIVE_TYPES:
+    if obj.slug in NATIVE_TYPES:
         return {
-            'type': db_object.slug
+            'type': obj.slug
         }
-    if use_defs:
+    if use_defs and obj.slug:
         return {
-            '$ref': f'#/$defs/{db_object.slug}'
+            '$ref': f'#/$defs/{obj.slug}'
         }
-    object_type = db_object.object_type
-    if object_type == JSONObject.OBJECT_TYPE_DICT:
-        props = dict([(childrel.child_key, get_schema_for_db_object(childrel.child, global_attrs_object)) for childrel in db_object.get_child_relationships()])
-        required = [childrel.child_key for childrel in db_object.get_child_relationships() if childrel.is_required]
+    kind = obj.kind
+    if kind == ms.KIND_DICT:
         result = {
             'type': 'object',
-            'properties': props
+            'properties': {
+                a.child_key: get_schema_for_object(a.child)
+                for a in obj.get_child_relationships()
+            },
         }
+        required = [a.child_key for a in obj.get_child_relationships() if a.is_required]
         if required:
             result['required'] = list(sorted(required))
-        if db_object.uses_global_attrs:
+        if obj.uses_global_attrs:
             result['allOf'] = [
-                {'$ref': f'#/$defs/{global_attrs_object.slug}'}
+                {'$ref': f'#/$defs/{obj.metaspec.global_attrs_object.slug}'}
             ]
             result['unevaluatedProperties'] = False
         return result
-    elif object_type == JSONObject.OBJECT_TYPE_DICT_USER_DEFINED:
-        childrels = db_object.get_child_relationships()
-        result = {
+    elif kind == ms.KIND_KEYED_DICT:
+        return {
             'type': 'object',
             'additionalProperties': False,
             'patternProperties': {
-                '^.*$': get_schema_for_db_object(childrels[0].child, global_attrs_object)
+                '^.*$': get_schema_for_object(obj.get_child_relationships()[0].child)
             }
         }
-        return result
-    elif object_type == JSONObject.OBJECT_TYPE_ARRAY:
-        childrels = db_object.get_child_relationships()
-        if len(childrels) == 1:
-            items = get_schema_for_db_object(childrels[0].child, global_attrs_object)
+    elif kind == ms.KIND_ARRAY:
+        attributes = obj.get_child_relationships()
+        if len(attributes) == 1:
+            items = get_schema_for_object(attributes[0].child)
         else:
             items = {
-                'anyOf': [get_schema_for_db_object(childrel.child, global_attrs_object) for childrel in childrels],
+                'anyOf': [get_schema_for_object(a.child) for a in attributes],
             }
         result = {
             'type': 'array',
             'items': items
         }
+        if obj.min_items is not None:
+            result['minItems'] = obj.min_items
+        if obj.max_items is not None:
+            result['maxItems'] = obj.max_items
         return result
-    elif object_type == JSONObject.OBJECT_TYPE_NUMBER:
+    elif kind == ms.KIND_NUMBER:
         result = {
             'type': 'integer'
         }
-        enums = JSONObjectEnum.objects.filter(parent=db_object)
-        if enums:
-            result['enum'] = [int(e.name) for e in enums]
+        if obj.enum_values:
+            result['enum'] = [int(e.name) for e in obj.enum_values]
         return result
-    elif object_type == JSONObject.OBJECT_TYPE_BOOLEAN:
+    elif kind == ms.KIND_BOOLEAN:
         return {
             'type': 'boolean'
         }
-    elif object_type == JSONObject.OBJECT_TYPE_STRING:
+    elif kind == ms.KIND_STRING:
         result = {
             'type': 'string'
         }
-        if db_object.regex:
-            result['pattern'] = db_object.regex
-        enums = JSONObjectEnum.objects.filter(parent=db_object)
-        if enums:
-            result['enum'] = [e.name for e in enums]
+        if obj.regex:
+            result['pattern'] = obj.regex
+        if obj.enum_values:
+            result['enum'] = [e.name for e in obj.enum_values]
         return result
-    elif object_type == JSONObject.OBJECT_TYPE_LITERAL_STRING:
+    elif kind == ms.KIND_LITERAL:
         return {
             'type': 'string',
-            'const': db_object.description
+            'const': obj.description
         }
+    raise ms.MetaspecError(f'Unknown kind "{kind}".')

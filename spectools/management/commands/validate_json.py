@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from spectools.models import ExampleDocument
+from spectools.metaspec import get_metaspec
 from spectools.utils.jsonschema import make_json_schema
 import json
 try:
@@ -25,8 +25,9 @@ def validate_example_docs(schema):
     validator = ValidatorClass(schema)
     passes = 0
     failures = 0
-    name_width = max(len(name) for name in ExampleDocument.objects.values_list('name', flat=True)) + 2
-    for doc in ExampleDocument.objects.order_by('name'):
+    examples = sorted(get_metaspec().examples, key=lambda e: e.name)
+    name_width = max(len(e.name) for e in examples) + 2
+    for doc in examples:
         name_plus_dots = doc.name + ((name_width - len(doc.name)) * '.')
         try:
             validator.validate(

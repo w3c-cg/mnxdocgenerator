@@ -2,7 +2,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.test.client import Client
 from django.urls import reverse
-from spectools.models import *
+from spectools.metaspec import get_metaspec
 import os
 import shutil
 
@@ -13,6 +13,7 @@ class SiteGenerator:
         self.dirname = dirname
         self.verbose = verbose
         self.client = Client()
+        self.metaspec = get_metaspec()
         if not os.path.exists(dirname):
             os.mkdir(dirname)
 
@@ -21,29 +22,28 @@ class SiteGenerator:
             print(message)
 
     def generate(self):
+        metaspec = self.metaspec
         self.copy_media_files()
         self.generate_view('homepage')
 
-        for doc_format in DocumentFormat.objects.all():
-            self.generate_url(doc_format.comparison_url())
+        for comparison_format in metaspec.comparison_formats.values():
+            self.generate_url(comparison_format.comparison_url())
 
-        for schema in XMLSchema.objects.all():
-            self.generate_url(schema.reference_url())
-            self.generate_url(schema.json_objects_url())
-            self.generate_view('json_schema', schema.slug)
-            self.generate_url(schema.examples_url())
-            for example in ExampleDocument.objects.filter(schema=schema):
-                self.generate_url(example.get_absolute_url())
+        doc_format = metaspec.format
+        self.generate_url(doc_format.reference_url())
+        self.generate_url(doc_format.json_objects_url())
+        self.generate_view('json_schema', doc_format.slug)
+        self.generate_url(doc_format.examples_url())
+        for example in metaspec.examples:
+            self.generate_url(example.get_absolute_url())
 
-        for obj in JSONObject.objects.all():
-            if obj.has_docs_page():
-                self.generate_url(obj.get_absolute_url())
+        for obj in metaspec.documented_objects():
+            self.generate_url(obj.get_absolute_url())
 
-        for spc in StaticPageCollection.objects.all():
-            self.generate_url(spc.url)
-
-        for static_page in StaticPage.objects.all():
-            self.generate_url(static_page.url)
+        for collection in metaspec.page_collections:
+            self.generate_url(collection.url)
+            for page in collection.pages:
+                self.generate_url(page.url)
 
     def generate_view(self, view_name, *view_args):
         url = reverse(view_name, args=view_args)

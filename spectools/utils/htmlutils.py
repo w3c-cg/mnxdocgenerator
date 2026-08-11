@@ -1,4 +1,4 @@
-from spectools.models import JSONObject
+from spectools.metaspec import get_object_for_data
 from spectools.utils.relative_url import get_relative_url
 import xml.sax
 import json
@@ -41,15 +41,15 @@ class DiffElementContentHandler(xml.sax.handler.ContentHandler):
         else:
             return f'<div class="xmlmarkup"><span class="{extraclass}">{html}</span></div>'
 
-def get_augmented_example(current_url, schema, raw_document, diffs_use_divs=True):
-    return get_augmented_example_json(current_url, schema, raw_document, diffs_use_divs)
+def get_augmented_example(current_url, root_object, raw_document, diffs_use_divs=True):
+    return get_augmented_example_json(current_url, root_object, raw_document, diffs_use_divs)
 
-def get_augmented_example_json(current_url, schema, raw_document, diffs_use_divs=True):
+def get_augmented_example_json(current_url, root_object, raw_document, diffs_use_divs=True):
     saw_diff = False # TODO: Implement this.
     result = get_augmented_example_json_inner(
         current_url,
         json.loads(raw_document),
-        JSONObject.objects.get(schema=schema, name=JSONObject.ROOT_OBJECT_NAME),
+        root_object,
         indent_level=0
     )
     output_html = []
@@ -141,7 +141,7 @@ def get_augmented_example_json_inner(current_url, json_data, object_def=None, in
             highlight
         ])
         for i, child_obj in enumerate(json_data):
-            child_object_def = JSONObject.get_jsonobject_for_data(child_obj, child_object_defs)
+            child_object_def = get_object_for_data(child_obj, child_object_defs)
             result.extend(get_augmented_example_json_inner(
                 current_url,
                 child_obj,

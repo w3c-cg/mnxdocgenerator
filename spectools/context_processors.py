@@ -1,10 +1,6 @@
-from spectools.models import SiteOptions
+from spectools.metaspec import get_metaspec
 
 def docs_global_variables(request):
-    try:
-        so = SiteOptions.objects.all()[0]
-    except IndexError:
-        so = None
     return {
-        'SITE_OPTIONS': so,
+        'SITE_OPTIONS': get_metaspec().site,
     }

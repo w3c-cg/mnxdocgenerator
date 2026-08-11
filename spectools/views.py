@@ -1,42 +1,37 @@
 from django import http
-from django.conf import settings
-from django.db.models import Q
-from django.db.models.functions import Lower
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import render
+from spectools.metaspec import get_metaspec
 from spectools.utils import htmlutils
-from spectools.models import *
+
+def get_format_or_404(metaspec, schema_slug):
+    if schema_slug != metaspec.format.slug:
+        raise http.Http404()
+    return metaspec.format
 
 def homepage(request):
-    return render(request, 'homepage.html', {
-        'schemas': XMLSchema.objects.order_by('name'),
-        'static_pages': StaticPage.objects.select_related('collection').order_by('collection__order', 'order'),
-    })
+    return render(request, 'homepage.html', {})
 
 def reference_homepage(request, schema_slug):
-    schema = get_object_or_404(XMLSchema, slug=schema_slug)
+    metaspec = get_metaspec()
     return render(request, 'reference_homepage.html', {
-        'schema': schema,
-        'featured_examples': ExampleDocument.objects.filter(schema=schema, is_featured=True).order_by('name'),
+        'schema': get_format_or_404(metaspec, schema_slug),
+        'featured_examples': metaspec.featured_examples(),
     })
 
 def json_object_list(request, schema_slug):
-    schema = get_object_or_404(XMLSchema, slug=schema_slug)
-    objects = JSONObject.objects.select_related('schema').filter(
-        schema=schema,
-    ).exclude(
-        Q(object_type=JSONObject.OBJECT_TYPE_ARRAY) | Q(object_type=JSONObject.OBJECT_TYPE_DICT_USER_DEFINED) | Q(object_type=JSONObject.OBJECT_TYPE_LITERAL_STRING)
-    ).order_by('name')
+    metaspec = get_metaspec()
     return render(request, 'json_object_list.html', {
-        'schema': schema,
-        'objects': objects,
+        'schema': get_format_or_404(metaspec, schema_slug),
+        'objects': sorted(metaspec.documented_objects(), key=lambda o: o.name),
     })
 
 def json_object_detail(request, schema_slug, slug):
-    json_object = get_object_or_404(
-        JSONObject.objects.select_related('schema'),
-        schema__slug=schema_slug,
-        slug=slug
-    )
+    metaspec = get_metaspec()
+    get_format_or_404(metaspec, schema_slug)
+    try:
+        json_object = metaspec.objects[slug]
+    except KeyError:
+        raise http.Http404()
     if not json_object.has_docs_page():
         raise http.Http404()
     return render(request, 'json_object_detail.html', {
@@ -44,9 +39,9 @@ def json_object_detail(request, schema_slug, slug):
         'child_relationships': json_object.get_child_relationships(),
         'child_relationships_global': json_object.get_global_child_relationships(),
         'parent_relationships': json_object.get_parent_relationships(),
-        'enum_values': JSONObjectEnum.objects.filter(parent=json_object).order_by('name'),
-        'examples': ExampleDocumentObject.objects.filter(json_object=json_object).select_related('example').order_by(Lower('example__name')),
-        'global_attrs_obj': JSONObject.objects.filter(name=JSONObject.GLOBAL_ATTRS_OBJECT_NAME)[0],
+        'enum_values': sorted(json_object.enum_values, key=lambda e: e.name),
+        'examples': metaspec.get_examples_for_object(json_object),
+        'global_attrs_obj': metaspec.global_attrs_object,
     })
 
 def json_schema(request, schema_slug):
@@ -57,35 +52,41 @@ def json_schema(request, schema_slug):
     return http.HttpResponse(schema_str, content_type='text/plain')
 
 def example_list(request, schema_slug):
-    schema = get_object_or_404(XMLSchema, slug=schema_slug)
+    metaspec = get_metaspec()
     return render(request, 'example_list.html', {
-        'schema': schema,
-        'examples': ExampleDocument.objects.filter(schema=schema).order_by(Lower('name')),
+        'schema': get_format_or_404(metaspec, schema_slug),
+        'examples': sorted(metaspec.examples, key=lambda e: e.name.lower()),
     })
 
 def example_detail(request, schema_slug, slug):
-    example = get_object_or_404(
-        ExampleDocument.objects.select_related('schema'),
-        schema__slug=schema_slug,
-        slug=slug
-    )
+    metaspec = get_metaspec()
+    get_format_or_404(metaspec, schema_slug)
+    try:
+        example = metaspec.examples_by_slug[slug]
+    except KeyError:
+        raise http.Http404()
     return render(request, 'example_detail.html', {
         'example': example,
-        'augmented_doc': htmlutils.get_augmented_example(request.path, example.schema, example.get_document_text(), diffs_use_divs=False)[1],
-        'comparisons': ExampleDocumentComparison.objects.filter(example=example).select_related('doc_format'),
+        'augmented_doc': htmlutils.get_augmented_example(request.path, metaspec.root_object, example.get_document_text(), diffs_use_divs=False)[1],
+        'comparisons': example.comparisons,
     })
 
 def format_comparison_detail(request, slug):
-    other_format = get_object_or_404(DocumentFormat, slug=slug)
-    main_schema = XMLSchema.objects.get(id=1)
+    metaspec = get_metaspec()
+    try:
+        other_format = metaspec.comparison_formats[slug]
+    except KeyError:
+        raise http.Http404()
     comparisons = []
-    for edc in ExampleDocumentComparison.objects.filter(doc_format=other_format).select_related('example').order_by('position'):
-        highlight_diffs, doc_html = htmlutils.get_augmented_example(request.path, main_schema, edc.example.get_document_text(), True)
+    for comparison in metaspec.get_comparisons(other_format):
+        highlight_diffs, doc_html = htmlutils.get_augmented_example(
+            request.path, metaspec.root_object, comparison.example.get_document_text(), True
+        )
         comparisons.append({
-            'example': edc.example,
-            'preamble_html': edc.preamble_html(),
+            'example': comparison.example,
+            'preamble_html': comparison.preamble_html(),
             'document_html': doc_html,
-            'other_document_html': htmlutils.get_prettified_xml(edc.document),
+            'other_document_html': htmlutils.get_prettified_xml(comparison.get_document_text()),
             'highlight_diffs': highlight_diffs,
         })
     return render(request, 'format_comparison_detail.html', {
@@ -94,20 +95,19 @@ def format_comparison_detail(request, slug):
     })
 
 def static_page_or_collection_detail(request):
-    try:
-        spc = StaticPageCollection.objects.filter(url=request.path)[0]
-    except IndexError:
-        pass
-    else:
-        return static_collection_detail(request, spc)
-    sp = get_object_or_404(StaticPage, url=request.path)
-    return render(request, 'static_page.html', {
-        'static_page': sp,
-    })
+    metaspec = get_metaspec()
+    for collection in metaspec.page_collections:
+        if collection.url == request.path:
+            return static_collection_detail(request, collection)
+    for page in metaspec.pages:
+        if page.url == request.path:
+            return render(request, 'static_page.html', {
+                'static_page': page,
+            })
+    raise http.Http404()
 
 def static_collection_detail(request, collection):
-    static_pages = StaticPage.objects.filter(collection=collection).order_by('order')
     return render(request, 'static_page_collection.html', {
         'collection': collection,
-        'static_pages': static_pages,
+        'static_pages': collection.pages,
     })

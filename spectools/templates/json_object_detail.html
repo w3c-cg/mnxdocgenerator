@@ -111,7 +111,7 @@
 <p>This object is used in the following examples:</p>
 <p>
 {% for example in examples %}
-<nobr><a href="{% relative_url_string example.example.get_absolute_url %}">{{ example.example.name }}</a></nobr>{% if not forloop.last %},{% endif %}
+<nobr><a href="{% relative_url_string example.get_absolute_url %}">{{ example.name }}</a></nobr>{% if not forloop.last %},{% endif %}
 {% endfor %}
 </p>
 {% endif %}
