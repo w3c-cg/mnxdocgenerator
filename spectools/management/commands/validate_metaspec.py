@@ -89,7 +89,9 @@ class Validator:
             required=('version', 'format', 'site', 'objects')
         ):
             return
-        self.check_string('version', data.get('version'))
+        version = data.get('version')
+        if not isinstance(version, (int, str)) or isinstance(version, bool):
+            self.error('version', f'should be a number or a string, not {version!r}.')
         if self.check_fields('format', data.get('format', {}), {'name', 'slug'},
                 required=('name', 'slug')):
             self.check_string('format.name', data['format'].get('name'))
