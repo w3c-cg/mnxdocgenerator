@@ -24,28 +24,13 @@ class SiteGenerator:
         self.copy_media_files()
         self.generate_view('homepage')
 
-        self.generate_view('concept_list')
-        for concept in Concept.objects.all():
-            self.generate_url(concept.get_absolute_url())
-
         for doc_format in DocumentFormat.objects.all():
             self.generate_url(doc_format.comparison_url())
 
         for schema in XMLSchema.objects.all():
             self.generate_url(schema.reference_url())
-            self.generate_url(schema.data_types_url())
-            if schema.is_json:
-                self.generate_url(schema.json_objects_url())
-                self.generate_view('json_schema', schema.slug)
-            else:
-                self.generate_url(schema.elements_url())
-                self.generate_url(schema.element_tree_url())
-            for data_type in DataType.objects.filter(schema=schema):
-                self.generate_url(data_type.get_absolute_url())
-
-            for element in XMLElement.objects.filter(schema=schema, is_abstract_element=False):
-                self.generate_url(element.get_absolute_url())
-
+            self.generate_url(schema.json_objects_url())
+            self.generate_view('json_schema', schema.slug)
             self.generate_url(schema.examples_url())
             for example in ExampleDocument.objects.filter(schema=schema):
                 self.generate_url(example.get_absolute_url())
