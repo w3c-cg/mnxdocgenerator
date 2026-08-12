@@ -35,8 +35,19 @@ GENERATED_JSON_SCHEMA_KEYS = {
     ms.KIND_BOOLEAN: {'type'},
 }
 
+# The same, for an attribute, keyed by how it gives its type. An attribute
+# pointing at a named object is generated as a bare "$ref"; the others are
+# generated in full.
+GENERATED_ATTRIBUTE_KEYS = {
+    'type': {'$ref', 'type'},
+    'items': {'type', 'items'},
+    'const': {'type', 'const'},
+}
+
 ATTRIBUTE_TYPE_FIELDS = ('type', 'items', 'const')
-ATTRIBUTE_FIELDS = set(ATTRIBUTE_TYPE_FIELDS) | {'required', 'description'}
+ATTRIBUTE_FIELDS = set(ATTRIBUTE_TYPE_FIELDS) | {
+    'required', 'description', 'extraJSONSchema',
+}
 
 TOP_LEVEL_FIELDS = {'version', 'format', 'site', 'objects', 'pageCollections'}
 SITE_FIELDS = {'siteName', 'formatName', 'sidebarHtml'}
@@ -153,7 +164,9 @@ class Validator:
         if 'role' in obj and obj['role'] not in (ms.ROLE_ROOT, ms.ROLE_GLOBAL_ATTRS):
             self.error(where, f'has an unknown role {obj["role"]!r}.')
         if 'extraJSONSchema' in obj:
-            self.check_extra_json_schema(where, kind, obj['extraJSONSchema'])
+            self.check_extra_json_schema(
+                where, obj['extraJSONSchema'], GENERATED_JSON_SCHEMA_KEYS[kind], 'object'
+            )
 
         if kind == ms.KIND_DICT:
             if 'globalAttributes' in obj:
@@ -182,7 +195,7 @@ class Validator:
                 self.check_string(f'{where} pattern', obj['pattern'])
             self.check_enum_values(where, kind, obj.get('values'))
 
-    def check_extra_json_schema(self, where, kind, extra):
+    def check_extra_json_schema(self, where, extra, generated_keys, what):
         where = f'{where} extraJSONSchema'
         if not isinstance(extra, dict):
             self.error(where, 'should be a dictionary of JSON Schema keywords.')
@@ -190,9 +203,9 @@ class Validator:
         if not extra:
             self.error(where, 'is empty; leave it out instead.')
             return
-        for key in sorted(k for k in extra if k in GENERATED_JSON_SCHEMA_KEYS[kind]):
+        for key in sorted(k for k in extra if k in generated_keys):
             self.warn(where, f'sets "{key}", which overrides what the generator '
-                'produces for this object.')
+                f'produces for this {what}.')
 
     def check_enum_values(self, where, kind, values):
         if values is None:
@@ -228,6 +241,13 @@ class Validator:
             self.check_bool(f'{where} required', attribute['required'])
         if 'description' in attribute:
             self.check_prose(f'{where} description', attribute['description'])
+        if 'extraJSONSchema' in attribute:
+            generated_keys = set()
+            for field in given:
+                generated_keys |= GENERATED_ATTRIBUTE_KEYS[field]
+            self.check_extra_json_schema(
+                where, attribute['extraJSONSchema'], generated_keys, 'attribute'
+            )
 
     def check_items(self, where, items, objects):
         if not isinstance(items, list) or not items:

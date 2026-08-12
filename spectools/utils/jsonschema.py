@@ -50,6 +50,19 @@ def get_schema_for_object(obj, use_defs=True):
     result.update(obj.extra_json_schema)
     return result
 
+def get_schema_for_attribute(attribute):
+    """
+    Given an Attribute, returns the JSON schema definition for its value.
+
+    This is the schema of the type it points at, plus the attribute's own
+    "extraJSONSchema". JSON Schema 2020-12 evaluates keywords alongside a
+    "$ref", so an attribute can narrow a shared type -- e.g. a stricter
+    "maximum" -- without affecting that type's other uses.
+    """
+    result = get_schema_for_object(attribute.child)
+    result.update(attribute.extra_json_schema)
+    return result
+
 def get_inline_schema_for_object(obj):
     """
     Returns the JSON schema keywords generated from a SpecObject's kind,
@@ -64,7 +77,7 @@ def get_inline_schema_for_object(obj):
         result = {
             'type': 'object',
             'properties': {
-                a.child_key: get_schema_for_object(a.child)
+                a.child_key: get_schema_for_attribute(a)
                 for a in obj.get_child_relationships()
             },
         }

@@ -87,12 +87,17 @@ class Attribute:
     One attribute of an object: the key it appears under, the object
     describing its value, and whether it's required.
     """
-    def __init__(self, parent, key, child, is_required=False, description=''):
+    def __init__(self, parent, key, child, is_required=False, description='',
+            extra_json_schema=None):
         self.parent = parent
         self.child_key = key
         self.child = child
         self.is_required = is_required
         self.description = description
+        # Raw JSON Schema keywords, merged into this attribute's generated
+        # schema as-is. Unlike a SpecObject's, these apply to this one use
+        # of the type rather than to every use of it.
+        self.extra_json_schema = extra_json_schema or {}
 
     def __repr__(self):
         return f'<Attribute parent="{self.parent.name}" key="{self.child_key}">'
@@ -407,6 +412,7 @@ class Metaspec:
                     obj, key, self._resolve_attribute_type(attr_data, key),
                     is_required=attr_data.get('required', False),
                     description=text(attr_data.get('description')),
+                    extra_json_schema=attr_data.get('extraJSONSchema'),
                 )
         elif obj.kind == KIND_ARRAY:
             self._add_array_items(obj, obj_data.get('items', []))
@@ -441,8 +447,11 @@ class Metaspec:
         for i, slug in enumerate(item_slugs):
             self._add_attribute(array, str(i), self._get_object(slug))
 
-    def _add_attribute(self, parent, key, child, is_required=False, description=''):
-        attribute = Attribute(parent, key, child, is_required, description)
+    def _add_attribute(self, parent, key, child, is_required=False, description='',
+            extra_json_schema=None):
+        attribute = Attribute(
+            parent, key, child, is_required, description, extra_json_schema
+        )
         parent.attributes.append(attribute)
         child.parent_attributes.append(attribute)
         return attribute
