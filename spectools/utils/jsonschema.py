@@ -40,13 +40,24 @@ def get_schema_for_object(obj, use_defs=True):
     and literal strings -- have no "$defs" entry, so they're always
     emitted in full.
     """
+    if obj.slug not in NATIVE_TYPES and use_defs and obj.slug:
+        # The object's own keywords, including any "extraJSONSchema", go on
+        # its "$defs" entry rather than on each reference to it.
+        return {
+            '$ref': f'#/$defs/{obj.slug}'
+        }
+    result = get_inline_schema_for_object(obj)
+    result.update(obj.extra_json_schema)
+    return result
+
+def get_inline_schema_for_object(obj):
+    """
+    Returns the JSON schema keywords generated from a SpecObject's kind,
+    without its "extraJSONSchema".
+    """
     if obj.slug in NATIVE_TYPES:
         return {
             'type': obj.slug
-        }
-    if use_defs and obj.slug:
-        return {
-            '$ref': f'#/$defs/{obj.slug}'
         }
     kind = obj.kind
     if kind == ms.KIND_DICT:

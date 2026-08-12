@@ -122,7 +122,7 @@ class SpecObject:
     """
     def __init__(self, metaspec, slug=None, kind=KIND_DICT, title=None,
             description='', uses_global_attrs=True, regex='', role=None,
-            min_items=None, max_items=None):
+            min_items=None, max_items=None, extra_json_schema=None):
         self.metaspec = metaspec
         self.slug = slug
         self.kind = kind
@@ -133,6 +133,9 @@ class SpecObject:
         self.role = role
         self.min_items = min_items
         self.max_items = max_items
+        # Raw JSON Schema keywords, merged into this object's generated
+        # schema definition as-is.
+        self.extra_json_schema = extra_json_schema or {}
 
         # Populated as the graph is built.
         self.attributes = []      # Attributes of this object.
@@ -381,6 +384,7 @@ class Metaspec:
                 role=obj_data.get('role'),
                 min_items=obj_data.get('minItems'),
                 max_items=obj_data.get('maxItems'),
+                extra_json_schema=obj_data.get('extraJSONSchema'),
             )
             self.objects[slug] = obj
             if obj.role == ROLE_ROOT:

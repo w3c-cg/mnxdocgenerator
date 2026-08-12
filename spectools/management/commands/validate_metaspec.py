@@ -11,7 +11,7 @@ import sys
 
 # The fields every object definition may use, plus the extra ones allowed
 # for each kind.
-COMMON_OBJECT_FIELDS = {'kind', 'title', 'description', 'role'}
+COMMON_OBJECT_FIELDS = {'kind', 'title', 'description', 'role', 'extraJSONSchema'}
 KIND_FIELDS = {
     ms.KIND_DICT: {'properties', 'globalAttributes'},
     ms.KIND_ARRAY: {'items', 'minItems', 'maxItems'},
@@ -19,6 +19,20 @@ KIND_FIELDS = {
     ms.KIND_STRING: {'values', 'pattern'},
     ms.KIND_NUMBER: {'values'},
     ms.KIND_BOOLEAN: set(),
+}
+
+# The JSON Schema keywords the generator produces itself, per kind. An
+# "extraJSONSchema" that sets one of these silently overrides it, so it's
+# worth pointing out.
+GENERATED_JSON_SCHEMA_KEYS = {
+    ms.KIND_DICT: {
+        'type', 'properties', 'required', 'allOf', 'unevaluatedProperties',
+    },
+    ms.KIND_ARRAY: {'type', 'items', 'minItems', 'maxItems'},
+    ms.KIND_KEYED_DICT: {'type', 'additionalProperties', 'patternProperties'},
+    ms.KIND_STRING: {'type', 'pattern', 'enum'},
+    ms.KIND_NUMBER: {'type', 'enum'},
+    ms.KIND_BOOLEAN: {'type'},
 }
 
 ATTRIBUTE_TYPE_FIELDS = ('type', 'items', 'const')
@@ -138,6 +152,8 @@ class Validator:
             self.check_prose(f'{where} description', obj['description'])
         if 'role' in obj and obj['role'] not in (ms.ROLE_ROOT, ms.ROLE_GLOBAL_ATTRS):
             self.error(where, f'has an unknown role {obj["role"]!r}.')
+        if 'extraJSONSchema' in obj:
+            self.check_extra_json_schema(where, kind, obj['extraJSONSchema'])
 
         if kind == ms.KIND_DICT:
             if 'globalAttributes' in obj:
@@ -165,6 +181,18 @@ class Validator:
             if 'pattern' in obj:
                 self.check_string(f'{where} pattern', obj['pattern'])
             self.check_enum_values(where, kind, obj.get('values'))
+
+    def check_extra_json_schema(self, where, kind, extra):
+        where = f'{where} extraJSONSchema'
+        if not isinstance(extra, dict):
+            self.error(where, 'should be a dictionary of JSON Schema keywords.')
+            return
+        if not extra:
+            self.error(where, 'is empty; leave it out instead.')
+            return
+        for key in sorted(k for k in extra if k in GENERATED_JSON_SCHEMA_KEYS[kind]):
+            self.warn(where, f'sets "{key}", which overrides what the generator '
+                'produces for this object.')
 
     def check_enum_values(self, where, kind, values):
         if values is None:
