@@ -14,7 +14,7 @@ import sys
 COMMON_OBJECT_FIELDS = {'kind', 'title', 'description', 'role', 'extraJSONSchema'}
 KIND_FIELDS = {
     ms.KIND_DICT: {'properties', 'globalAttributes'},
-    ms.KIND_ARRAY: {'items', 'minItems', 'maxItems'},
+    ms.KIND_ARRAY: {'items'},
     ms.KIND_KEYED_DICT: {'values'},
     ms.KIND_STRING: {'values', 'pattern'},
     ms.KIND_NUMBER: {'values'},
@@ -28,7 +28,7 @@ GENERATED_JSON_SCHEMA_KEYS = {
     ms.KIND_DICT: {
         'type', 'properties', 'required', 'allOf', 'unevaluatedProperties',
     },
-    ms.KIND_ARRAY: {'type', 'items', 'minItems', 'maxItems'},
+    ms.KIND_ARRAY: {'type', 'items'},
     ms.KIND_KEYED_DICT: {'type', 'additionalProperties', 'patternProperties'},
     ms.KIND_STRING: {'type', 'pattern', 'enum'},
     ms.KIND_NUMBER: {'type', 'enum'},
@@ -179,12 +179,6 @@ class Validator:
                     self.check_attribute(f'{where} attribute "{key}"', attribute, objects)
         elif kind == ms.KIND_ARRAY:
             self.check_items(where, obj.get('items'), objects)
-            for key in ('minItems', 'maxItems'):
-                if key in obj and not isinstance(obj[key], int):
-                    self.error(f'{where} {key}', f'should be an integer, not {obj[key]!r}.')
-            if isinstance(obj.get('minItems'), int) and isinstance(obj.get('maxItems'), int) \
-                    and obj['minItems'] > obj['maxItems']:
-                self.error(where, 'minItems is greater than maxItems.')
         elif kind == ms.KIND_KEYED_DICT:
             if 'values' not in obj:
                 self.error(where, 'needs a "values" field naming the type of every value.')

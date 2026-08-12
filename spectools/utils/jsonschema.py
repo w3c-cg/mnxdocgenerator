@@ -106,15 +106,10 @@ def get_inline_schema_for_object(obj):
             items = {
                 'anyOf': [get_schema_for_object(a.child) for a in attributes],
             }
-        result = {
+        return {
             'type': 'array',
             'items': items
         }
-        if obj.min_items is not None:
-            result['minItems'] = obj.min_items
-        if obj.max_items is not None:
-            result['maxItems'] = obj.max_items
-        return result
     elif kind == ms.KIND_NUMBER:
         result = {
             'type': 'integer'
