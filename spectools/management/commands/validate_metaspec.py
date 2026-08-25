@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from spectools import metaspec as ms
 import json
+import math
 import os
 import sys
 
@@ -17,7 +18,8 @@ KIND_FIELDS = {
     ms.KIND_ARRAY: {'items'},
     ms.KIND_KEYED_DICT: {'values'},
     ms.KIND_STRING: {'values', 'pattern'},
-    ms.KIND_NUMBER: {'values'},
+    ms.KIND_INTEGER: {'values'},
+    ms.KIND_FLOAT: {'values'},
     ms.KIND_BOOLEAN: set(),
 }
 
@@ -31,7 +33,8 @@ GENERATED_JSON_SCHEMA_KEYS = {
     ms.KIND_ARRAY: {'type', 'items'},
     ms.KIND_KEYED_DICT: {'type', 'additionalProperties', 'patternProperties'},
     ms.KIND_STRING: {'type', 'pattern', 'enum'},
-    ms.KIND_NUMBER: {'type', 'enum'},
+    ms.KIND_INTEGER: {'type', 'enum'},
+    ms.KIND_FLOAT: {'type', 'enum'},
     ms.KIND_BOOLEAN: {'type'},
 }
 
@@ -184,7 +187,7 @@ class Validator:
                 self.error(where, 'needs a "values" field naming the type of every value.')
             else:
                 self.check_slug(f'{where} values', obj['values'], objects)
-        elif kind in (ms.KIND_STRING, ms.KIND_NUMBER):
+        elif kind in ms.KINDS_WITH_ENUM_VALUES:
             if 'pattern' in obj:
                 self.check_string(f'{where} pattern', obj['pattern'])
             self.check_enum_values(where, kind, obj.get('values'))
@@ -209,13 +212,23 @@ class Validator:
             return
         for name, description in values.items():
             self.check_prose(f'{where} value "{name}"', description)
-            if kind == ms.KIND_NUMBER:
+            if kind == ms.KIND_INTEGER:
                 try:
                     int(name)
                 except ValueError:
                     self.error(
                         f'{where} value "{name}"',
-                        'is not a whole number. Values of a "number" object must be.'
+                        'is not a whole number. Values of an "integer" object must be.'
+                    )
+            elif kind == ms.KIND_FLOAT:
+                try:
+                    is_number = math.isfinite(float(name))
+                except ValueError:
+                    is_number = False
+                if not is_number:
+                    self.error(
+                        f'{where} value "{name}"',
+                        'is not a number. Values of a "float" object must be.'
                     )
 
     def check_attribute(self, where, attribute, objects):

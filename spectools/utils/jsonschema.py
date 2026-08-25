@@ -110,12 +110,19 @@ def get_inline_schema_for_object(obj):
             'type': 'array',
             'items': items
         }
-    elif kind == ms.KIND_NUMBER:
+    elif kind == ms.KIND_INTEGER:
         result = {
             'type': 'integer'
         }
         if obj.enum_values:
             result['enum'] = [int(e.name) for e in obj.enum_values]
+        return result
+    elif kind == ms.KIND_FLOAT:
+        result = {
+            'type': 'number'
+        }
+        if obj.enum_values:
+            result['enum'] = [float(e.name) for e in obj.enum_values]
         return result
     elif kind == ms.KIND_BOOLEAN:
         return {

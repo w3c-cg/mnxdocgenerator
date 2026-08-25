@@ -14,7 +14,8 @@ KIND_DICT = 'dict'
 KIND_KEYED_DICT = 'keyedDict'
 KIND_ARRAY = 'array'
 KIND_STRING = 'string'
-KIND_NUMBER = 'number'
+KIND_INTEGER = 'integer'
+KIND_FLOAT = 'float'
 KIND_BOOLEAN = 'boolean'
 KIND_LITERAL = 'literal'
 
@@ -22,12 +23,20 @@ KIND_LITERAL = 'literal'
 # a page of their own.
 KINDS_WITHOUT_DOCS_PAGE = {KIND_ARRAY, KIND_KEYED_DICT, KIND_LITERAL}
 
+# The numeric kinds, which behave identically apart from whether a
+# fractional part is allowed.
+KINDS_NUMERIC = {KIND_INTEGER, KIND_FLOAT}
+
+# The kinds that may enumerate their allowed values in "values".
+KINDS_WITH_ENUM_VALUES = {KIND_STRING} | KINDS_NUMERIC
+
 PRETTY_KINDS = {
     KIND_DICT: 'Dictionary',
     KIND_KEYED_DICT: 'Dictionary with user-defined keys',
     KIND_ARRAY: 'Array',
     KIND_STRING: 'String',
-    KIND_NUMBER: 'Number',
+    KIND_INTEGER: 'Integer',
+    KIND_FLOAT: 'Number',
     KIND_BOOLEAN: 'Boolean',
     KIND_LITERAL: 'Literal string',
 }
@@ -118,8 +127,8 @@ class EnumValue:
 
 class SpecObject:
     """
-    One object in the specification: a dictionary, array, string, number,
-    boolean, literal or user-keyed dictionary.
+    One object in the specification: a dictionary, array, string, integer,
+    float, boolean, literal or user-keyed dictionary.
 
     Objects declared inline -- an "items" list or a "const" on an
     attribute -- are anonymous: they have no slug, no name and no
@@ -142,7 +151,7 @@ class SpecObject:
 
         # Populated as the graph is built.
         self.attributes = []      # Attributes of this object.
-        self.enum_values = []     # Allowed values, for strings and numbers.
+        self.enum_values = []     # Allowed values, for strings and numerics.
         self.parent_attributes = []  # Attributes elsewhere that point here.
 
     def __str__(self):
@@ -228,8 +237,11 @@ class SpecObject:
             return isinstance(json_data, list)
         elif self.kind in (KIND_STRING, KIND_LITERAL):
             return isinstance(json_data, str)
-        elif self.kind == KIND_NUMBER:
-            return isinstance(json_data, (int, float))
+        elif self.kind == KIND_INTEGER:
+            # Booleans are excluded, because Python considers them ints.
+            return isinstance(json_data, int) and not isinstance(json_data, bool)
+        elif self.kind == KIND_FLOAT:
+            return isinstance(json_data, (int, float)) and not isinstance(json_data, bool)
         elif self.kind == KIND_BOOLEAN:
             return isinstance(json_data, bool)
         raise NotImplementedError(self.kind)
@@ -414,7 +426,7 @@ class Metaspec:
             self._add_array_items(obj, obj_data.get('items', []))
         elif obj.kind == KIND_KEYED_DICT:
             self._add_attribute(obj, '0', self._get_object(obj_data['values']))
-        elif obj.kind in (KIND_STRING, KIND_NUMBER):
+        elif obj.kind in KINDS_WITH_ENUM_VALUES:
             for name, description in (obj_data.get('values') or {}).items():
                 obj.enum_values.append(EnumValue(obj, name, text(description)))
 
