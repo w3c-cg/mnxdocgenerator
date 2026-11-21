@@ -88,7 +88,17 @@ def get_inline_schema_for_object(obj):
             result['allOf'] = [
                 {'$ref': f'#/$defs/{obj.metaspec.global_attrs_object.slug}'}
             ]
-            result['unevaluatedProperties'] = False
+        # Close the object to any properties it doesn't define. The global
+        # attributes object is left open: it's only ever pulled into other
+        # objects via "allOf", and closing it would make it reject their
+        # own properties.
+        if not obj.allows_other_properties and not obj.is_global_attrs_object():
+            if obj.uses_global_attrs:
+                # "additionalProperties" can't see properties defined in an
+                # "allOf" subschema, so the global attributes need this.
+                result['unevaluatedProperties'] = False
+            else:
+                result['additionalProperties'] = False
         return result
     elif kind == ms.KIND_KEYED_DICT:
         return {

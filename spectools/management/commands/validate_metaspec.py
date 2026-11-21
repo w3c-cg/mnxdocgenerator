@@ -14,7 +14,7 @@ import sys
 # for each kind.
 COMMON_OBJECT_FIELDS = {'kind', 'title', 'description', 'role', 'extraJSONSchema'}
 KIND_FIELDS = {
-    ms.KIND_DICT: {'properties', 'globalAttributes'},
+    ms.KIND_DICT: {'properties', 'globalAttributes', 'allowOtherProperties'},
     ms.KIND_ARRAY: {'items'},
     ms.KIND_KEYED_DICT: {'values'},
     ms.KIND_STRING: {'values', 'pattern'},
@@ -29,6 +29,7 @@ KIND_FIELDS = {
 GENERATED_JSON_SCHEMA_KEYS = {
     ms.KIND_DICT: {
         'type', 'properties', 'required', 'allOf', 'unevaluatedProperties',
+        'additionalProperties',
     },
     ms.KIND_ARRAY: {'type', 'items'},
     ms.KIND_KEYED_DICT: {'type', 'additionalProperties', 'patternProperties'},
@@ -174,6 +175,8 @@ class Validator:
         if kind == ms.KIND_DICT:
             if 'globalAttributes' in obj:
                 self.check_bool(f'{where} globalAttributes', obj['globalAttributes'])
+            if 'allowOtherProperties' in obj:
+                self.check_bool(f'{where} allowOtherProperties', obj['allowOtherProperties'])
             properties = obj.get('properties', {})
             if not isinstance(properties, dict):
                 self.error(f'{where} properties', 'should be a dictionary.')

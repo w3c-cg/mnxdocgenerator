@@ -136,13 +136,15 @@ class SpecObject:
     """
     def __init__(self, metaspec, slug=None, kind=KIND_DICT, title=None,
             description='', uses_global_attrs=True, regex='', role=None,
-            extra_json_schema=None):
+            extra_json_schema=None, allows_other_properties=False):
         self.metaspec = metaspec
         self.slug = slug
         self.kind = kind
         self.name = title or slug
         self.description = description
         self.uses_global_attrs = uses_global_attrs
+        # For dicts: whether properties beyond the defined ones are valid.
+        self.allows_other_properties = allows_other_properties
         self.regex = regex
         self.role = role
         # Raw JSON Schema keywords, merged into this object's generated
@@ -398,6 +400,7 @@ class Metaspec:
                 regex=obj_data.get('pattern', ''),
                 role=obj_data.get('role'),
                 extra_json_schema=obj_data.get('extraJSONSchema'),
+                allows_other_properties=obj_data.get('allowOtherProperties', False),
             )
             self.objects[slug] = obj
             if obj.role == ROLE_ROOT:
